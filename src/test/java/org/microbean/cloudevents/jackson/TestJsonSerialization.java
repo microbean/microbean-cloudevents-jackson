@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -39,6 +40,7 @@ import org.microbean.cloudevents.CloudEvent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestJsonSerialization {
 
@@ -64,7 +66,13 @@ public class TestJsonSerialization {
   public void testRead() throws IOException {
     final Path testReadJson = this.referenceFiles.resolve("testRead.json");
     assertNotNull(testReadJson);
-    final CloudEvent cloudEvent = objectMapper.readValue(testReadJson.toUri().toURL(), CloudEvent.class);
+    CloudEvent cloudEvent = null;
+    try (final MappingIterator<CloudEvent> iterator = objectMapper.readerFor(CloudEvent.class).readValues(testReadJson.toUri().toURL())) {
+      assertNotNull(iterator);
+      assertTrue(iterator.hasNext());
+      cloudEvent = iterator.next();
+      assertFalse(iterator.hasNext());
+    }
     assertNotNull(cloudEvent);
     assertEquals("0.1", cloudEvent.getCloudEventsVersion());
     assertEquals("com.example.someevent", cloudEvent.getEventType());
